@@ -1,10 +1,11 @@
 from DB import Database
+from pymongo.bulk import BulkWriteError
 import math
 from urllib.request import urlopen, Request
 from urllib.error import HTTPError, URLError
 import socket
-from utils import GetWebpageInformation
 from datetime import datetime
+from Utils import GetWebpageInformation
 
 
 class Spider:
@@ -20,7 +21,7 @@ class Spider:
 
     def __init__(self, spiderID, batchSize, timeout, maxDepth):
         '''Spider constructor'''
-        print(f'Creating spider {spiderID}')
+        print(f'Creating Spider {spiderID}')
         self.id = spiderID
         self.batchSize = batchSize
         self.timeout = timeout
@@ -30,14 +31,17 @@ class Spider:
         self.error = []
 
     def PrintMessage(self, message):
-        print('Spider: ', self.id, message)
+        print('Spider', self.id + ' -', message)
 
     def StoreBatchResults(self, batchStartTime, batchNumber):
-        self.PrintMessage('Batch ' + str(batchNumber) + ' got ' +
-                          (datetime.now() - batchStartTime).total_seconds() + ' seconds to complete')
+        self.PrintMessage('Batch ' + str(batchNumber) + ' took ' +
+                          str((datetime.now() - batchStartTime).total_seconds()) + ' seconds to complete')
 
-        Database.visited.insert_many(self.visited)
-        Database.error.insert_many(self.error)
+        if len(self.visited) > 0:
+            Database.visited.insert_many(self.visited)
+
+        if len(self.error) > 0:
+            Database.error.insert_many(self.error)
 
         visitedUrls = list(set(map(lambda element: element['url'], self.visited)).union(
             set(map(lambda element: element['url'], self.error))))
@@ -73,8 +77,15 @@ class Spider:
 
                 if contentType == 'text/html':
                     html = response.read().decode(charset if charset else 'utf8')
+
+                    getLinks = depth + 1 < self.maxDepth
                     pageInformation = GetWebpageInformation(
-                        html, depth + 1 < self.maxDepth, Spider.targetMetaTags)
+                        html, getLinks, Spider.targetMetaTags)
+                    if getLinks:
+                        Database.InsertNotVisitedWebpages(
+                            pageInformation['links'], depth)
+
+                    del pageInformation['links']
                     pageInformation['url'] = url
                     self.visited.append(pageInformation)
 
@@ -92,7 +103,7 @@ class Spider:
                                    'message': error.reason, 'lastVisited': datetime.now()})
 
             batchVisitedWebpages += 1
-            if batchVisitedWebpages == self.batchSize or i == len(urls):
+            if batchVisitedWebpages == self.batchSize or i == len(urls) - 1:
                 self.StoreBatchResults(batchStartTime, batchNumber)
                 self.visited = []
                 self.error = []

@@ -1,15 +1,14 @@
 from pymongo import collection, MongoClient, ASCENDING
 from urllib.request import urlopen
-from utils import FilterLinks
 
 
 class Database:
 
-    websDB = MongoClient(port=27017).websDB
+    client = MongoClient(port=27017)
 
-    notVisited = websDB['notVisited']
-    visited = websDB['notVisited']
-    error = websDB['error']
+    notVisited = client.websDB['notVisited']
+    visited = client.websDB['visited']
+    error = client.websDB['error']
 
     @staticmethod
     def Reset():
@@ -18,13 +17,15 @@ class Database:
         urlList = list(set(urlopen(
             'http://fmartinz.webs.ull.es/adquisicion/digitales.txt').read().decode('utf8').split('\n')))
 
-        Database.notVisited.delete_many({})
+        Database.notVisited.drop()
         Database.notVisited.create_index(
             [('url', ASCENDING)], unique=True)
-        Database.visited.delete_many({})
+
+        Database.visited.drop()
         Database.visited.create_index(
             [('url', ASCENDING)], unique=True)
-        Database.error.delete_many({})
+
+        Database.error.drop()
         Database.error.create_index(
             [('url', ASCENDING)], unique=True)
 
@@ -34,10 +35,26 @@ class Database:
     @staticmethod
     def InsertNotVisitedWebpages(urls, depth):
         '''Adds urls to notVisited collection'''
-        urls = FilterLinks(urls)
+        urls = Database.FilterLinks(urls)
 
         documents = []
         for url in urls:
             documents.append({'url': url, 'depth': depth})
 
-        Database.notVisited.insert_many(documents)
+        if (len(documents) > 0):
+            Database.notVisited.insert_many(documents)
+
+    @staticmethod
+    def FilterLinks(links):
+        '''Removes links which are already included in notVisited, visited or error collections'''
+
+        links = list(set(links) - set(map(lambda element: element['url'], list(Database.notVisited.find(
+            {'url': {'$in': links}})))))
+
+        links = list(set(links) - set(map(lambda element: element['url'], list(
+            Database.error.find({'url': {'$in': links}})))))
+
+        links = list(set(links) - set(map(lambda element: element['url'], list(
+            Database.visited.find({'url': {'$in': links}})))))
+
+        return links

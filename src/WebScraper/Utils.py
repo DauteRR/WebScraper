@@ -1,4 +1,3 @@
-from DB import Database
 from bs4 import BeautifulSoup
 from datetime import datetime
 
@@ -21,21 +20,6 @@ def GetWebpageHeaders(parsedHTML):
             del headers[targetHeaders]
 
     return headers
-
-
-def FilterLinks(links):
-    '''Removes links which are already included in notVisited, visited or error collections'''
-
-    links = list(set(links) - set(map(lambda element: element['url'], list(Database.notVisited.find(
-        {'url': {'$in': links}})))))
-
-    links = list(set(links) - set(map(lambda element: element['url'], list(
-        Database.error.find({'url': {'$in': links}})))))
-
-    links = list(set(links) - set(map(lambda element: element['url'], list(
-        Database.visited.find({'url': {'$in': links}})))))
-
-    return links
 
 
 def GetWebpageMetaTags(parsedHTML, targetMetaTags):

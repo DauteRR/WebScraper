@@ -1,5 +1,5 @@
 import click
-from DB import Database
+from Spider import Spider, Database
 
 
 @click.command()
@@ -16,6 +16,10 @@ def main(batchSize=25, threads=8, timeout=1, maxDepth=1, threadLimit=600, webpag
 
     if (resetDB):
         db.Reset()
+
+    myFirstSpider = Spider('1', batchSize, timeout, maxDepth)
+
+    # myFirstSpider.VisitWebpages(list(db.notVisited.find({}).limit(100)))
 
 
 if __name__ == '__main__':
