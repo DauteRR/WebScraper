@@ -1,4 +1,5 @@
 import click
+import math
 from Spider import Spider, Database
 
 
@@ -10,16 +11,29 @@ from Spider import Spider, Database
 @click.option('-l', '--threadLimit', 'threadLimit', help='Maximum amount of webpages assigned to a thread', type=click.INT, default=600)
 @click.option('-w', '--webpagesLimit', 'webpagesLimit', help='Total webpages limit', type=click.INT, default=4800)
 @click.option('-r', '--resetDB', 'resetDB', is_flag=True, help='Tells whether to reset the database or not', type=click.BOOL, default=False)
-def main(batchSize=25, threads=8, timeout=1, maxDepth=1, threadLimit=600, webpagesLimit=4800, resetDB=False):
+@click.option('-m', '--mode', 'mode', help='Execution mode', type=click.Choice(['internal', 'newDomains']), default='internal')
+def main(batchSize=25, threads=8, timeout=1, maxDepth=1, threadLimit=600, webpagesLimit=4800, resetDB=False, mode='internal'):
 
     db = Database()
 
     if (resetDB):
         db.Reset()
+        return 0
 
-    myFirstSpider = Spider('1', batchSize, timeout, maxDepth)
+    toVisit = list(db.notVisited.find({}).limit(webpagesLimit))
 
-    # myFirstSpider.VisitWebpages(list(db.notVisited.find({}).limit(100)))
+    webpagesPerSpider = int(math.ceil(len(toVisit) / threads))
+
+    webpagesPerSpider = threadLimit if webpagesPerSpider > threadLimit else webpagesPerSpider
+
+    chunks = [toVisit[i: i + webpagesPerSpider]
+              for i in range(0, len(toVisit), webpagesPerSpider)]
+
+    for i in range(threads):
+        spider = Spider(str(i), batchSize, timeout, maxDepth)
+        spider.toVisit = chunks[i]
+
+        spider.start()
 
 
 if __name__ == '__main__':

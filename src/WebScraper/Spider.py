@@ -6,9 +6,10 @@ from urllib.error import HTTPError, URLError
 import socket
 from datetime import datetime
 from Utils import GetWebpageInformation
+from threading import Thread
 
 
-class Spider:
+class Spider(Thread):
 
     targetMetaTags = [
         'keywords',
@@ -22,6 +23,7 @@ class Spider:
     def __init__(self, spiderID, batchSize, timeout, maxDepth):
         '''Spider constructor'''
         print(f'Creating Spider {spiderID}')
+        Thread.__init__(self)
         self.id = spiderID
         self.batchSize = batchSize
         self.timeout = timeout
@@ -29,6 +31,7 @@ class Spider:
 
         self.visited = []
         self.error = []
+        self.toVisit = []
 
     def PrintMessage(self, message):
         print('Spider', self.id + ' -', message)
@@ -48,23 +51,23 @@ class Spider:
         Database.notVisited.delete_many(
             {'url': {'$in': visitedUrls}})
 
-    def VisitWebpages(self, urls):
+    def run(self):
         '''Iterates over a list of urls retrieving web pages information'''
-        self.PrintMessage('Amount of webpages: ' + str(len(urls)))
+        self.PrintMessage('Amount of webpages: ' + str(len(self.toVisit)))
         self.PrintMessage('Timeout: ' + str(self.timeout) + ' s')
         self.PrintMessage('Max depth: ' + str(self.maxDepth))
         self.PrintMessage('Batch size: ' + str(self.batchSize))
         self.PrintMessage(
-            'Batches: ' + str(math.ceil(len(urls) / self.batchSize)))
+            'Batches: ' + str(math.ceil(len(self.toVisit) / self.batchSize)))
 
         startTime = datetime.now()
         batchStartTime = datetime.now()
         batchVisitedWebpages = 0
         batchNumber = 1
 
-        for i in range(0, len(urls)):
-            url = urls[i]['url']
-            depth = urls[i]['depth']
+        for i in range(0, len(self.toVisit)):
+            url = self.toVisit[i]['url']
+            depth = self.toVisit[i]['depth']
 
             try:
                 headers = {
@@ -78,7 +81,7 @@ class Spider:
                 if contentType == 'text/html':
                     html = response.read().decode(charset if charset else 'utf8')
 
-                    getLinks = depth + 1 < self.maxDepth
+                    getLinks = depth + 1 <= self.maxDepth
                     pageInformation = GetWebpageInformation(
                         html, getLinks, Spider.targetMetaTags)
                     if getLinks:
@@ -88,6 +91,8 @@ class Spider:
                     del pageInformation['links']
                     pageInformation['url'] = url
                     self.visited.append(pageInformation)
+                else:
+                    self.visited.append({'url': url})
 
             except HTTPError as error:
                 self.error.append({'url': url, 'errorType': 'HTTPError',
@@ -101,9 +106,12 @@ class Spider:
             except UnicodeDecodeError as error:
                 self.error.append({'url': url, 'errorType': 'UnicodeDecodeError',
                                    'message': error.reason, 'lastVisited': datetime.now()})
+            except UnicodeEncodeError as error:
+                self.error.append({'url': url, 'errorType': 'UnicodeEncodeError',
+                                   'message': error.reason, 'lastVisited': datetime.now()})
 
             batchVisitedWebpages += 1
-            if batchVisitedWebpages == self.batchSize or i == len(urls) - 1:
+            if batchVisitedWebpages == self.batchSize or i == len(self.toVisit) - 1:
                 self.StoreBatchResults(batchStartTime, batchNumber)
                 self.visited = []
                 self.error = []
@@ -111,5 +119,5 @@ class Spider:
                 batchStartTime = datetime.now()
                 batchNumber += 1
 
-        print('Total elapsed seconds:',
-              (datetime.now() - startTime).total_seconds())
+        self.PrintMessage('Total elapsed seconds: ' +
+                          str((datetime.now() - startTime).total_seconds()))
