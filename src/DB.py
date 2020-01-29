@@ -1,11 +1,12 @@
 from pymongo import collection, MongoClient, ASCENDING
 from urllib.request import urlopen
 from Utils import IsBaseDomain, GetBaseDomain
+import os
 
 
 class Database:
 
-    client = MongoClient(port=27017)
+    client = MongoClient(port=os.getenv('MONGO_PORT', 27017))
 
     notVisited = client.websDB['notVisited']
     visited = client.websDB['visited']
