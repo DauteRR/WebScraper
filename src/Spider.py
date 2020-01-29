@@ -6,11 +6,10 @@ from urllib.error import HTTPError, URLError
 import socket
 from datetime import datetime
 from Utils import GetWebpageInformation, IsBaseDomain
-from threading import Thread
 from colorama import Style
 
 
-class Spider(Thread):
+class Spider:
 
     targetMetaTags = [
         'keywords',
@@ -23,8 +22,7 @@ class Spider(Thread):
 
     def __init__(self, spiderID, batchSize, timeout, maxDepth, color, style):
         '''Spider constructor'''
-        print(f'Creating Spider {spiderID}')
-        Thread.__init__(self)
+        print(f'Creating {color}{style}Spider {spiderID}{Style.RESET_ALL}')
         self.id = spiderID
         self.batchSize = batchSize
         self.timeout = timeout
@@ -55,7 +53,7 @@ class Spider(Thread):
         Database.notVisited.delete_many(
             {'url': {'$in': visitedUrls}})
 
-    def run(self):
+    def Search(self):
         '''Iterates over a list of urls retrieving web pages information'''
         self.PrintMessage('Amount of webpages: ' + str(len(self.toVisit)))
         self.PrintMessage('Timeout: ' + str(self.timeout) + ' s')
