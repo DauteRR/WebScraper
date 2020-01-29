@@ -60,7 +60,7 @@ class Spider:
 
     def Search(self):
         '''Iterates over a list of urls retrieving web pages information'''
-        self.PrintMessage('Amount of webpages: ' + str(len(self.toVisit)))
+        self.PrintMessage('Webpages to visit: ' + str(len(self.toVisit)))
         self.PrintMessage('Timeout: ' + str(self.timeout) + ' s')
         self.PrintMessage('Max depth: ' + str(self.maxDepth))
         self.PrintMessage('Batch size: ' + str(self.batchSize))
@@ -78,29 +78,25 @@ class Spider:
 
             try:
                 headers = {
-                    'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.90 Safari/537.36'
+                    'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.90 Safari/537.36',
+                    'Accept': 'text/html'
                 }
                 request = Request(url, headers=headers)
                 response = urlopen(request, timeout=self.timeout)
-                contentType = response.headers.get_content_type()
                 charset = response.headers.get_content_charset()
+                html = response.read().decode(charset if charset else 'utf8')
 
-                if contentType == 'text/html':
-                    html = response.read().decode(charset if charset else 'utf8')
+                getLinks = depth + 1 <= self.maxDepth
+                pageInformation = GetWebpageInformation(
+                    html, getLinks, Spider.targetMetaTags)
+                if getLinks:
+                    Database.InsertNotVisitedWebpages(
+                        pageInformation['links'], depth)
 
-                    getLinks = depth + 1 <= self.maxDepth
-                    pageInformation = GetWebpageInformation(
-                        html, getLinks, Spider.targetMetaTags)
-                    if getLinks:
-                        Database.InsertNotVisitedWebpages(
-                            pageInformation['links'], depth)
-
-                    del pageInformation['links']
-                    pageInformation['url'] = url
-                    pageInformation['baseDomain'] = IsBaseDomain(url)
-                    self.visited.append(pageInformation)
-                else:
-                    self.visited.append({'url': url})
+                del pageInformation['links']
+                pageInformation['url'] = url
+                pageInformation['baseDomain'] = IsBaseDomain(url)
+                self.visited.append(pageInformation)
 
             except HTTPError as error:
                 self.error.append({'url': url, 'errorType': 'HTTPError',

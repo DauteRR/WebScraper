@@ -44,9 +44,6 @@ def main(batchSize=25, threads=8, timeout=3.0, maxDepth=1, limit=600, webpagesLi
         toVisit = list(filter(lambda element:
                               GetBaseDomain(element['url']) in knownDomains, list(db.notVisited.find({'baseDomain': False}))))[0:webpagesLimit]
 
-    print(f'{Fore.BLUE}Webpages to visit: {len(toVisit)}{Style.RESET_ALL}')
-    print(f'{Fore.BLUE}Threads: {threads}{Style.RESET_ALL}')
-
     threads = len(toVisit) if len(toVisit) < threads else threads
 
     if threads == 0:
@@ -68,9 +65,16 @@ def main(batchSize=25, threads=8, timeout=3.0, maxDepth=1, limit=600, webpagesLi
         spider.toVisit = chunks[i]
         spiders.append(spider)
 
+    print(f'{Fore.BLUE}Webpages to visit: {len(toVisit)}{Style.RESET_ALL}')
+    print(f'{Fore.BLUE}Threads: {threads}{Style.RESET_ALL}')
+    print(f'{Fore.BLUE}Spiders: {len(spiders)}{Style.RESET_ALL}')
+
     with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
 
-        executor.map(lambda spider: spider.Search(), spiders)
+        futures = [executor.submit(spider.Search) for spider in spiders]
+
+        for future in futures:
+            future.result()
 
 
 if __name__ == '__main__':

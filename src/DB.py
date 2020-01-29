@@ -1,4 +1,4 @@
-from pymongo import collection, MongoClient, ASCENDING
+from pymongo import collection, MongoClient, ASCENDING, TEXT
 from urllib.request import urlopen
 from Utils import IsBaseDomain, GetBaseDomain
 import os
@@ -25,6 +25,13 @@ class Database:
         Database.visited.drop()
         Database.visited.create_index(
             [('url', ASCENDING)], unique=True)
+
+        Database.visited.create_index(
+            [('title', TEXT), ('meta.keywords', TEXT), ('headers.h1', TEXT),
+             ('headers.h2', TEXT), ('content', TEXT)],
+            name='SearchIndex',
+            default_language='spanish',
+            weights={'title': 10, 'meta.keywords': 5, 'headers.h1': 3, 'headers.h2': 2, 'content': 1})
 
         Database.error.drop()
         Database.error.create_index(

@@ -17,7 +17,11 @@ def GetBaseDomain(url):
 
 def GetContent(parsedHTML):
     '''Returns html tags content'''
-    return parsedHTML.get_text(separator='\n', strip=True)
+
+    if parsedHTML.body:
+        return parsedHTML.body.get_text(separator=' ', strip=True)
+    else:
+        return parsedHTML.get_text(separator=' ', strip=True)
 
 
 def GetWebpageHeaders(parsedHTML):
@@ -37,7 +41,7 @@ def GetWebpageHeaders(parsedHTML):
 
 def GetWebpageMetaTags(parsedHTML, targetMetaTags):
     '''Returns html meta tag information'''
-    metaTags = {}
+    metaTags = {key: None for key in targetMetaTags}
     for metaTag in parsedHTML.find_all('meta'):
         if (
             metaTag.get('name')
@@ -47,7 +51,7 @@ def GetWebpageMetaTags(parsedHTML, targetMetaTags):
             metaTags[metaTag.get('name').lower()] = metaTag.get('content')
 
     # store keywords as list of strings
-    if 'keywords' in metaTags:
+    if 'keywords' in metaTags and metaTags['keywords'] != None:
         metaTags['keywords'] = [
             keyword.strip() for keyword in metaTags['keywords'].split(',')
         ]
@@ -73,12 +77,17 @@ def GetWebpageInformation(html, getLinks, targetMetaTags):
     for tag in parsed(['script', 'style']):
         tag.decompose()
 
+    # Extract and remove headers
+    headers = GetWebpageHeaders(parsed)
+    for tag in parsed(['h' + str(i) for i in range(1, 7)]):
+        tag.decompose()
+
     # Return page information
     return {
         'title': parsed.title.string if parsed.title else '',
         'meta': GetWebpageMetaTags(parsed, targetMetaTags),
         'content': GetContent(parsed),
-        'headers': GetWebpageHeaders(parsed),
+        'headers': headers,
         'lastVisited': datetime.now(),
         'links': GetWebpageLinks(parsed) if getLinks else []
     }
