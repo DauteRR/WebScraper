@@ -29,8 +29,11 @@ class Spider:
         self.maxDepth = maxDepth
 
         self.visited = []
+        self.visitedCount = 0
         self.error = []
+        self.errorCount = 0
         self.toVisit = []
+        self.timedOutCount = 0
 
         self.color = color
         self.style = style
@@ -43,9 +46,11 @@ class Spider:
                           str((datetime.now() - batchStartTime).total_seconds()) + ' seconds to complete')
 
         if len(self.visited) > 0:
+            self.visitedCount += len(self.visited)
             Database.visited.insert_many(self.visited)
 
         if len(self.error) > 0:
+            self.errorCount += len(self.error)
             Database.error.insert_many(self.error)
 
         visitedUrls = list(set(map(lambda element: element['url'], self.visited)).union(
@@ -104,6 +109,7 @@ class Spider:
                 self.error.append({'url': url, 'errorType': 'URLError',
                                    'message': str(error.reason), 'lastVisited': datetime.now(), 'baseDomain': IsBaseDomain(url)})
             except socket.timeout as error:
+                self.timedOutCount += 1
                 pass
             except UnicodeDecodeError as error:
                 self.error.append({'url': url, 'errorType': 'UnicodeDecodeError',
@@ -123,3 +129,6 @@ class Spider:
 
         self.PrintMessage('Total elapsed seconds: ' +
                           str((datetime.now() - startTime).total_seconds()))
+        self.PrintMessage('Visited webpages: ' + str(self.visitedCount))
+        self.PrintMessage('Error webpages: ' + str(self.errorCount))
+        self.PrintMessage('Timed out webpages: ' + str(self.timedOutCount))

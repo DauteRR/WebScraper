@@ -15,13 +15,13 @@ styles = [Style.DIM, Style.NORMAL, Style.BRIGHT]
 @click.command()
 @click.option('-b', '--batchSize', 'batchSize', help='Size of batches', type=click.INT, default=25)
 @click.option('-t', '--threads', 'threads', help='Amount of threads', type=click.INT, default=8)
-@click.option('-s', '--seconds', 'timeout', help='Maximum timeout in seconds', type=click.FLOAT, default=1)
+@click.option('-s', '--seconds', 'timeout', help='Maximum timeout in seconds', type=click.FLOAT, default=3.0)
 @click.option('-d', '--depth', 'maxDepth', help='Maximum depth', type=click.INT, default=1)
 @click.option('-l', '--limit', 'limit', help='Maximum amount of webpages assigned to a Spider', type=click.INT, default=600)
 @click.option('-w', '--webpagesLimit', 'webpagesLimit', help='Total webpages limit', type=click.INT, default=4800)
 @click.option('-r', '--resetDB', 'resetDB', is_flag=True, help='Tells whether to reset the database or not', type=click.BOOL, default=False)
 @click.option('-m', '--mode', 'mode', help='Execution mode', type=click.Choice(['internal', 'newDomains']), default='internal')
-def main(batchSize=25, threads=8, timeout=1, maxDepth=1, limit=600, webpagesLimit=4800, resetDB=False, mode='internal'):
+def main(batchSize=25, threads=8, timeout=3.0, maxDepth=1, limit=600, webpagesLimit=4800, resetDB=False, mode='internal'):
 
     colorsCombinations = [(color, style)
                           for style in styles for color in colors]
