@@ -1,5 +1,6 @@
 from pymongo import collection, MongoClient, ASCENDING
 from urllib.request import urlopen
+from Utils import IsBaseDomain, GetBaseDomain
 
 
 class Database:
@@ -16,7 +17,6 @@ class Database:
         print('Resetting database ...')
         urlList = list(set(urlopen(
             'http://fmartinz.webs.ull.es/adquisicion/digitales.txt').read().decode('utf8').split('\n')))
-
         Database.notVisited.drop()
         Database.notVisited.create_index(
             [('url', ASCENDING)], unique=True)
@@ -30,7 +30,7 @@ class Database:
             [('url', ASCENDING)], unique=True)
 
         Database.notVisited.insert_many(
-            list(map(lambda url: {'url': url, 'depth': 0}, urlList)))
+            list(map(lambda url: {'url': url, 'depth': 0, 'baseDomain': IsBaseDomain(url)}, urlList)))
 
     @staticmethod
     def InsertNotVisitedWebpages(urls, depth):
@@ -39,7 +39,8 @@ class Database:
 
         documents = []
         for url in urls:
-            documents.append({'url': url, 'depth': depth})
+            documents.append({'url': url, 'depth': depth,
+                              'baseDomain': IsBaseDomain(url)})
 
         if (len(documents) > 0):
             Database.notVisited.insert_many(documents)

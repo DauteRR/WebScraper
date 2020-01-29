@@ -5,7 +5,7 @@ from urllib.request import urlopen, Request
 from urllib.error import HTTPError, URLError
 import socket
 from datetime import datetime
-from Utils import GetWebpageInformation
+from Utils import GetWebpageInformation, IsBaseDomain
 from threading import Thread
 
 
@@ -90,25 +90,25 @@ class Spider(Thread):
 
                     del pageInformation['links']
                     pageInformation['url'] = url
+                    pageInformation['baseDomain'] = IsBaseDomain(url)
                     self.visited.append(pageInformation)
                 else:
                     self.visited.append({'url': url})
 
             except HTTPError as error:
                 self.error.append({'url': url, 'errorType': 'HTTPError',
-                                   'message': error.code, 'lastVisited': datetime.now()})
+                                   'message': error.code, 'lastVisited': datetime.now(), 'baseDomain': IsBaseDomain(url)})
             except URLError as error:
                 self.error.append({'url': url, 'errorType': 'URLError',
-                                   'message': str(error.reason), 'lastVisited': datetime.now()})
+                                   'message': str(error.reason), 'lastVisited': datetime.now(), 'baseDomain': IsBaseDomain(url)})
             except socket.timeout as error:
-                self.error.append({'url': url, 'errorType': 'Timeout',
-                                   'message': str(error), 'lastVisited': datetime.now()})
+                pass
             except UnicodeDecodeError as error:
                 self.error.append({'url': url, 'errorType': 'UnicodeDecodeError',
-                                   'message': error.reason, 'lastVisited': datetime.now()})
+                                   'message': error.reason, 'lastVisited': datetime.now(), 'baseDomain': IsBaseDomain(url)})
             except UnicodeEncodeError as error:
                 self.error.append({'url': url, 'errorType': 'UnicodeEncodeError',
-                                   'message': error.reason, 'lastVisited': datetime.now()})
+                                   'message': error.reason, 'lastVisited': datetime.now(), 'baseDomain': IsBaseDomain(url)})
 
             batchVisitedWebpages += 1
             if batchVisitedWebpages == self.batchSize or i == len(self.toVisit) - 1:

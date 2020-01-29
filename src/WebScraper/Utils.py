@@ -1,5 +1,18 @@
 from bs4 import BeautifulSoup
 from datetime import datetime
+from urllib.parse import urlparse
+
+
+def IsBaseDomain(url):
+    '''Tells whether a url is a base domain or not'''
+    path = urlparse(url).path
+    return path == '' or path == '/'
+
+
+def GetBaseDomain(url):
+    '''Returns the base domain of an url'''
+    result = urlparse(url)
+    return result.scheme + '://' + result.netloc
 
 
 def GetContent(parsedHTML):

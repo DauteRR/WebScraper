@@ -1,6 +1,7 @@
 import click
 import math
 from Spider import Spider, Database
+from Utils import GetBaseDomain
 
 
 @click.command()
@@ -20,7 +21,26 @@ def main(batchSize=25, threads=8, timeout=1, maxDepth=1, threadLimit=600, webpag
         db.Reset()
         return 0
 
-    toVisit = list(db.notVisited.find({}).limit(webpagesLimit))
+    toVisit = []
+
+    if mode == 'newDomains':
+        toVisit = list(db.notVisited.find(
+            {'baseDomain': True}).limit(webpagesLimit))
+    else:
+        knownDomains = set(map(lambda element: element['url'], list(
+            db.visited.find({'baseDomain': True}))))
+
+        toVisit = list(filter(lambda element:
+                              GetBaseDomain(element['url']) in knownDomains, list(db.notVisited.find({'baseDomain': False}))))[0:webpagesLimit]
+
+    print('Webpages to visit:', len(toVisit))
+    print('Threads:', threads)
+
+    threads = len(toVisit) if len(toVisit) < threads else threads
+
+    if threads == 0:
+        print('Nothing to do...')
+        return 0
 
     webpagesPerSpider = int(math.ceil(len(toVisit) / threads))
 
