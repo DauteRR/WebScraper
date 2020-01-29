@@ -7,6 +7,7 @@ beautifulsoup4=4.8.2=py38_0
 ca-certificates=2019.11.27=0
 certifi=2019.11.28=py38_0
 click=7.0=py_0
+colorama=0.4.3=py_0
 icu=58.2=h9c2bf20_1
 ld_impl_linux-64=2.33.1=h53a641e_7
 libedit=3.1.20181209=hc058e9b_0

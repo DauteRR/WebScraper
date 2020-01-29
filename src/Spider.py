@@ -7,6 +7,7 @@ import socket
 from datetime import datetime
 from Utils import GetWebpageInformation, IsBaseDomain
 from threading import Thread
+from colorama import Style
 
 
 class Spider(Thread):
@@ -20,7 +21,7 @@ class Spider(Thread):
         'organization',
     ]
 
-    def __init__(self, spiderID, batchSize, timeout, maxDepth):
+    def __init__(self, spiderID, batchSize, timeout, maxDepth, color, style):
         '''Spider constructor'''
         print(f'Creating Spider {spiderID}')
         Thread.__init__(self)
@@ -33,8 +34,11 @@ class Spider(Thread):
         self.error = []
         self.toVisit = []
 
+        self.color = color
+        self.style = style
+
     def PrintMessage(self, message):
-        print('Spider', self.id + ' -', message)
+        print(f'{self.color}{self.style}Spider {self.id} - {Style.RESET_ALL} {message}')
 
     def StoreBatchResults(self, batchStartTime, batchNumber):
         self.PrintMessage('Batch ' + str(batchNumber) + ' took ' +
