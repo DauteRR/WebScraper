@@ -70,13 +70,19 @@ def main(batchSize=25, threads=8, timeout=3.0, maxDepth=1, limitPerSpider=200, w
     chunks = [toVisit[i: i + webpagesPerSpider]
               for i in range(0, len(toVisit), webpagesPerSpider)]
 
+    Spider.allLinks = allLinks
+    Spider.batchSize = batchSize
+    Spider.limit = limitPerSpider
+    Spider.maxDepth = maxDepth
+    Spider.recursive = recursive
+    Spider.timeout = timeout
+
     print(f'{Fore.BLUE}Spiders: {len(chunks)}{Style.RESET_ALL}')
 
     spiders = []
     for i in range(len(chunks)):
         spiderColors = colorsCombinations[i % len(colorsCombinations)]
-        spider = Spider(str(i), batchSize, timeout, maxDepth, allLinks, recursive, limitPerSpider,
-                        spiderColors[0], spiderColors[1])
+        spider = Spider(str(i), spiderColors[0], spiderColors[1])
         spider.toVisit = chunks[i]
         spiders.append(spider)
 

@@ -12,6 +12,13 @@ from http.client import InvalidURL
 
 class Spider:
 
+    timeout = 3.0
+    maxDepth = 1
+    batchSize = 25
+    limit = 200
+    allLinks = False
+    recursive = False
+
     targetMetaTags = [
         'keywords',
         'description',
@@ -21,16 +28,10 @@ class Spider:
         'organization',
     ]
 
-    def __init__(self, spiderID, batchSize, timeout, maxDepth, allLinks, recursive, limit, color, style):
+    def __init__(self, spiderID, color, style):
         '''Spider constructor'''
         print(f'Creating {color}{style}Spider {spiderID}{Style.RESET_ALL}')
         self.id = spiderID
-        self.batchSize = batchSize
-        self.timeout = timeout
-        self.maxDepth = maxDepth
-        self.recursive = recursive
-        self.allLinks = allLinks
-        self.limit = limit
 
         self.visited = []
         self.visitedCount = 0
@@ -69,7 +70,7 @@ class Spider:
             {'url': {'$in': visitedUrls}})
 
     def Search(self):
-        '''Iterates over a list of urls retrieving web pages information'''
+        '''Iterates over a list of urls retrieving webpages information'''
         self.PrintMessage('Webpages to visit: ' + str(len(self.toVisit)))
         self.PrintMessage('Timeout: ' + str(self.timeout) + ' s')
         self.PrintMessage('Max depth: ' + str(self.maxDepth))
