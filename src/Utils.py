@@ -59,17 +59,20 @@ def GetWebpageMetaTags(parsedHTML, targetMetaTags):
     return metaTags
 
 
-def GetWebpageLinks(parsedHTML):
+def GetWebpageLinks(parsedHTML, url, all=False):
     '''Returns urls starting with https:// or http:// extracted from href attributes of html a tags'''
     links = []
     for link in parsedHTML.find_all('a'):
         if link.get('href') and (link.get('href').startswith('https://') or link.get('href').startswith('http://')):
+            if not all and GetBaseDomain(url) != GetBaseDomain(link.get('href')):
+                continue
+
             links.append(link.get('href'))
 
     return links
 
 
-def GetWebpageInformation(html, getLinks, targetMetaTags):
+def GetWebpageInformation(url, html, getLinks, targetMetaTags, allLinks):
     '''Returns information of an html file'''
     parsed = BeautifulSoup(html, 'lxml')
 
@@ -89,5 +92,5 @@ def GetWebpageInformation(html, getLinks, targetMetaTags):
         'content': GetContent(parsed),
         'headers': headers,
         'lastVisited': datetime.now(),
-        'links': GetWebpageLinks(parsed) if getLinks else []
+        'links': GetWebpageLinks(parsed, url, allLinks) if getLinks else []
     }

@@ -7,6 +7,7 @@ import socket
 from datetime import datetime
 from Utils import GetWebpageInformation, IsBaseDomain
 from colorama import Style
+from http.client import InvalidURL
 
 
 class Spider:
@@ -20,13 +21,16 @@ class Spider:
         'organization',
     ]
 
-    def __init__(self, spiderID, batchSize, timeout, maxDepth, color, style):
+    def __init__(self, spiderID, batchSize, timeout, maxDepth, allLinks, recursive, limit, color, style):
         '''Spider constructor'''
         print(f'Creating {color}{style}Spider {spiderID}{Style.RESET_ALL}')
         self.id = spiderID
         self.batchSize = batchSize
         self.timeout = timeout
         self.maxDepth = maxDepth
+        self.recursive = recursive
+        self.allLinks = allLinks
+        self.limit = limit
 
         self.visited = []
         self.visitedCount = 0
@@ -34,16 +38,22 @@ class Spider:
         self.errorCount = 0
         self.toVisit = []
         self.timedOutCount = 0
+        self.added = 0
 
         self.color = color
         self.style = style
 
     def PrintMessage(self, message):
-        print(f'{self.color}{self.style}Spider {self.id} - {Style.RESET_ALL} {message}')
+        print(f'{self.color}{self.style}Spider {self.id} - {Style.RESET_ALL}{message}')
 
     def StoreBatchResults(self, batchStartTime, batchNumber):
         self.PrintMessage('Batch ' + str(batchNumber) + ' took ' +
                           str((datetime.now() - batchStartTime).total_seconds()) + ' seconds to complete')
+
+        if self.added != 0 and self.recursive:
+            self.PrintMessage(
+                'Added ' + str(self.added) + ' new links recursively')
+            self.added = 0
 
         if len(self.visited) > 0:
             self.visitedCount += len(self.visited)
@@ -65,16 +75,17 @@ class Spider:
         self.PrintMessage('Max depth: ' + str(self.maxDepth))
         self.PrintMessage('Batch size: ' + str(self.batchSize))
         self.PrintMessage(
-            'Batches: ' + str(math.ceil(len(self.toVisit) / self.batchSize)))
+            'Initial batches: ' + str(math.ceil(len(self.toVisit) / self.batchSize)))
 
         startTime = datetime.now()
         batchStartTime = datetime.now()
         batchVisitedWebpages = 0
         batchNumber = 1
 
-        for i in range(0, len(self.toVisit)):
-            url = self.toVisit[i]['url']
-            depth = self.toVisit[i]['depth']
+        while len(self.toVisit) > 0:
+            new = self.toVisit.pop(0)
+            url = new['url']
+            depth = new['depth']
 
             try:
                 headers = {
@@ -88,10 +99,14 @@ class Spider:
 
                 getLinks = depth + 1 <= self.maxDepth
                 pageInformation = GetWebpageInformation(
-                    html, getLinks, Spider.targetMetaTags)
+                    url, html, getLinks, Spider.targetMetaTags, self.allLinks)
                 if getLinks:
-                    Database.InsertNotVisitedWebpages(
-                        pageInformation['links'], depth)
+                    newLinks = Database.PrepareLinksList(
+                        pageInformation['links'], depth + 1)
+                    Database.InsertNotVisitedWebpages(newLinks)
+                    if self.recursive:
+                        self.toVisit = self.toVisit + newLinks
+                        self.added += len(newLinks)
 
                 del pageInformation['links']
                 pageInformation['url'] = url
@@ -104,6 +119,9 @@ class Spider:
             except URLError as error:
                 self.error.append({'url': url, 'errorType': 'URLError',
                                    'message': str(error.reason), 'lastVisited': datetime.now(), 'baseDomain': IsBaseDomain(url)})
+            except InvalidURL as error:
+                self.error.append({'url': url, 'errorType': 'InvalidURL',
+                                   'message': str(error), 'lastVisited': datetime.now(), 'baseDomain': IsBaseDomain(url)})
             except socket.timeout as error:
                 self.timedOutCount += 1
                 pass
@@ -115,7 +133,7 @@ class Spider:
                                    'message': error.reason, 'lastVisited': datetime.now(), 'baseDomain': IsBaseDomain(url)})
 
             batchVisitedWebpages += 1
-            if batchVisitedWebpages == self.batchSize or i == len(self.toVisit) - 1:
+            if batchVisitedWebpages == self.batchSize or len(self.toVisit) == 1 or (self.visitedCount + self.errorCount >= self.limit):
                 self.StoreBatchResults(batchStartTime, batchNumber)
                 self.visited = []
                 self.error = []
@@ -123,8 +141,13 @@ class Spider:
                 batchStartTime = datetime.now()
                 batchNumber += 1
 
+                if (self.visitedCount + self.errorCount >= self.limit):
+                    self.PrintMessage('Spider limit reached')
+                    break
+
         self.PrintMessage('Total elapsed seconds: ' +
                           str((datetime.now() - startTime).total_seconds()))
+        self.PrintMessage('Total batches ' + str(batchNumber))
         self.PrintMessage('Visited webpages: ' + str(self.visitedCount))
         self.PrintMessage('Error webpages: ' + str(self.errorCount))
         self.PrintMessage('Timed out webpages: ' + str(self.timedOutCount))
