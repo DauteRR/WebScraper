@@ -18,6 +18,20 @@ $ python3 src/main.py --help
 
 <div style="text-align:center;"><img src="media/screenshot.png" /></div>
 
+### Options
+
+- **-b, --batchSize**: Size of spiders batches. Establish the frequency of database save operations. When a batch is completed, the spider performs a save operation in the database with the obtained results.
+- **-n, --numberOfThreads**: Amount of execution threads
+- **-t, --timeout**: HTTP GET petitions timeout in seconds.
+- **-d, --depth**: Maximum amount of recursivity levels when exploring webpages links.
+- **-l, --limit**: Maximum amount of webpages assigned to each spider.
+- **-i, --initialize**: Tells whether to initialize the database or not.
+- **-r, --recursive**: Recursive mode. When a spider retrieves a webpage, extracts it's links and the recursive flag is set to true, the same spider will visit those links whenever possible (only if the limit had not be reached)
+- **-a, --allLinks**: Tells whether to store all possible links or not. By default, spider will only store "internal links"
+- **-m, --mode**: Specifies the execution mode, execution modes are presets of options:
+  - _explore_: The spider will visit only new domains, saving all links and without recursivity.
+  - _in-depth_: The spider will visit only links of known domains recusively.
+
 ## About the project
 
 <div style="text-align:center;"><img src="media/diagram.png" /></div>
